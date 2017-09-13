@@ -60,7 +60,7 @@ class MismatchGenerator(object):
                     snp = seq[-1:]
                     # Create all possible combination of SNPs at each position (1 mismatch)
                     end = len(seq) - 1
-                    if self.mismatch == 1:
+                    if self.mismatch == 1:  # 17 primers per primer for a 21-mer
                         for i in range(0, end, 1):  # range([start], stop[, step])
                             for letter1 in alphabet:
                                 s1 = list(seq)  # Convert string to list of character
@@ -69,7 +69,7 @@ class MismatchGenerator(object):
                             # Write new string to file and append ech variant with a different number
                             self.primer_dict.setdefault(position, {}).setdefault(allele, {}) \
                                 .setdefault(seq, {}).setdefault(m1, [])
-                    elif self.mismatch == 2:
+                    elif self.mismatch == 2:  # 1771 primers per primer for a 21-mer
                         for i in range(0, end, 1):  # range([start], stop[, step])
                             for letter1 in alphabet:
                                 s1 = list(seq)  # Convert string to list of character
@@ -85,6 +85,32 @@ class MismatchGenerator(object):
 
                                             self.primer_dict.setdefault(position, {}).setdefault(allele, {}) \
                                                 .setdefault(seq, {}).setdefault(m2, [])
+                    elif self.mismatch == 3:  # 32551 primers per primer for a 21-mer
+                        for i in range(0, end, 1):  # range([start], stop[, step])
+                            for letter1 in alphabet:
+                                s1 = list(seq)  # Convert string to list of character
+                                s1[i] = letter1  # Replace at desired index
+                                m1 = "".join(s1)  # Remake string by joining all element of the list
+
+                                if i < end:
+                                    for j in range((i + 1), end, 1):
+                                        for letter2 in alphabet:
+                                            s2 = list(m1)
+                                            s2[j] = letter2
+                                            m2 = "".join(s2)
+
+                                            if j < end:
+                                                for k in range((j + 1), end, 1):
+                                                    for letter3 in alphabet:
+                                                        s3 = list(m2)
+                                                        s3[k] = letter3
+                                                        m3 = "".join(s3)
+
+                                                        self.primer_dict.setdefault(position, {})\
+                                                                        .setdefault(allele, {})\
+                                                                        .setdefault(seq, {})\
+                                                                        .setdefault(m3, [])
+                                                        test = 1
 
     def write_output_fasta(self):
         fh = open(self.output, 'w')
