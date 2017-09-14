@@ -30,7 +30,7 @@ Optional flag:
     
     -h      Print this help.
 
-    -n      Mismatches allowed. Default is 2.
+    -n      Mismatches allowed. Default is 1.
 
     -t      Number of threads. Default is all.
 "
@@ -46,7 +46,7 @@ paired=0
 primers=""
 output=""
 cpu=$(nproc)
-mismatch=2
+mismatch=1
 
 options=':fqmp:o:t:n:h'
 
@@ -310,64 +310,71 @@ shortest="${sizes[0]}"
 ########################
 
 
+# #Create a list of all possible strings to search for according to the number of mismatches requested
+# takes 20min to generate all the primers for 2 mismatches, plus repeated ones. Switched to python.
+# declare -a alphabet=('A' 'T' 'C' 'G')
+# for s in "${sizes[@]}"; do
+#     while IFS= read -r line; do
+#         l=$(echo $line | tr -d "\n" | tr -d "\r")
+#         if [ -z "$l" ]; then
+#             continue
+#         fi
+
+#         char1="${l:0:1}"
+#         if [ "$char1" = ">" ]; then  # it's the header
+#             primer_name="$l"
+#             # echo $primer_name
+#         else
+#             len=${#l}
+#             last_index=$((len-1))
+#             snp=${l:last_index:1}
+
+#             declare -a alphabet=('A' 'T' 'C' 'G')
+#             counter=0
+
+#             if [ "$mismatch" -eq 1 ]; then  #one mismatch                
+#                 for p in $(seq 1 1 $last_index); do
+#                     for q in ${alphabet[@]}; do
+#                         let counter=counter+1
+#                         new=$(sed "s/./$q/$p" <<< $l)
+#                         # echo $new
+#                         echo -e ""$primer_name"_"${counter}"\n"$new"" >> "${output}"/"${sampleName}"_primers_"${len}"-mer_clipped.fasta
+#                     done
+#                 done
+#             elif [ "$mismatch" -eq 2 ]; then  #two mismatches
+#                 for a in $(seq 1 1 "$last_index"); do    # sed index starts at 1
+#                     # echo "a: $a"
+#                     for b in "${alphabet[@]}"; do
+#                         # echo "b: $b"
+#                         new=$(sed "s/./"$b"/"$a"" <<< "$l")
+#                         if [ "$a" -lt "$last_index" ]; then
+#                             for c in $(seq $((a+1)) 1 "$last_index"); do
+#                                 # echo "c: $c"
+#                                 for d in "${alphabet[@]}"; do
+#                                     # echo "d: $d"
+#                                     let counter=counter+1
+#                                     newer=$(sed "s/./"$d"/"$c"" <<< "$new")
+#                                     # echo "$newer"
+#                                     echo -e ""$primer_name"_"${counter}"\n"$newer"" >> "${output}"/"${sampleName}"_primers_"${len}"-mer_clipped.fasta
+#                                 done
+#                             done
+#                         fi
+#                     done
+#                 done
+#             fi
+#         fi
+#     done < "${output}"/"${sampleName}"_primers_"${s}"-mer.fasta
+# done
+
 #Create a list of all possible strings to search for according to the number of mismarch requested
-declare -a alphabet=('A' 'T' 'C' 'G')
-for s in "${sizes[@]}"; do
-    while IFS= read -r line; do
-        l=$(echo $line | tr -d "\n" | tr -d "\r")
-        if [ -z "$l" ]; then
-            continue
-        fi
-
-        char1="${l:0:1}"
-        if [ "$char1" = ">" ]; then  # it's the header
-            primer_name="$l"
-            # echo $primer_name
-        else
-            len=${#l}
-            last_index=$((len-1))
-            snp=${l:last_index:1}
-
-            declare -a alphabet=('A' 'T' 'C' 'G')
-            counter=0
-
-            if [ "$mismatch" -eq 1 ]; then  #one mismatch                
-                for p in $(seq 1 1 $last_index); do
-                    for q in ${alphabet[@]}; do
-                        let counter=counter+1
-                        new=$(sed "s/./$q/$p" <<< $l)
-                        # echo $new
-                        echo -e ""$primer_name"_"${counter}"\n"$new"" >> "${output}"/"${sampleName}"_primers_"${len}"-mer_clipped.fasta
-                    done
-                done
-            elif [ "$mismatch" -eq 2 ]; then  #two mismatches
-                for a in $(seq 1 1 "$last_index"); do    # sed index starts at 1
-                    # echo "a: $a"
-                    for b in "${alphabet[@]}"; do
-                        # echo "b: $b"
-                        new=$(sed "s/./"$b"/"$a"" <<< "$l")
-                        if [ "$a" -lt "$last_index" ]; then
-                            for c in $(seq $((a+1)) 1 "$last_index"); do
-                                # echo "c: $c"
-                                for d in "${alphabet[@]}"; do
-                                    # echo "d: $d"
-                                    let counter=counter+1
-                                    newer=$(sed "s/./"$d"/"$c"" <<< "$new")
-                                    # echo "$newer"
-                                    echo -e ""$primer_name"_"${counter}"\n"$newer"" >> "${output}"/"${sampleName}"_primers_"${len}"-mer_clipped.fasta
-                                done
-                            done
-                        fi
-                    done
-                done
-            fi
-        fi
-    done < "${output}"/"${sampleName}"_primers_"${s}"-mer.fasta
-done
-
-#combine the counts for all the variants of the same primer
-
-
+if [ "$mismatch" -gt 0 ] && [ "$mismatch" -le 3 ]; then
+    python ~/PycharmProjects/mismatch_creator/mismatch_creator.py \
+        -m "$mismatch" \
+        -i "$primers" \
+        -o "${output}"/primers.fasta
+else
+    cp "$primers" "${output}"/primers.fasta
+fi
 
 #First pass with mismatch allowed
 if [ "$fastq" -eq 1 ] && [ "$paired" -eq 1 ]; then  # fastq paried-end
@@ -380,7 +387,7 @@ if [ "$fastq" -eq 1 ] && [ "$paired" -eq 1 ]; then  # fastq paried-end
             hdist=0 \
             in1="$1" \
             in2="$2" \
-            ref="${output}"/"${sampleName}"_primers_"${s}"-mer_clipped.fasta \
+            ref="${output}"/primers.fasta \
             stats="${output}"/"${sampleName}"_"${s}"-mer.counts
     done
 else  # fasta or fastq single end
@@ -392,61 +399,14 @@ else  # fasta or fastq single end
             k="$s" \
             hdist="$mismatch" \
             in="$1" \
-            ref="${output}"/"${sampleName}"_primers_"${s}"-mer_clipped_ok.fasta \
+            ref="${output}"/primers.fasta \
             stats="${output}"/"${sampleName}"_"${s}"-mer.counts
     done
 fi
 
-
-exit
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-if [ "$fastq" -eq 1 ] && [ "$paired" -eq 1 ]; then  # fastq paried-end
-    for s in "${sizes[@]}"; do
-        bbduk.sh "$memJava" \
-            overwrite=t \
-            maskmiddle=f \
-            rcomp=t \
-            k="$s" \
-            hdist="$mismatch" \
-            in1="$1" \
-            in2="$2" \
-            ref="${output}"/"${sampleName}"_primers_"${s}"-mer.fasta \
-            stats="${output}"/"${sampleName}"_"${s}"-mer.counts
-    done
-else  # fasta or fastq single end
-    for s in "${sizes[@]}"; do
-        bbduk.sh "$memJava" \
-            overwrite=t \
-            maskmiddle=f \
-            rcomp=t \
-            k="$s" \
-            hdist="$mismatch" \
-            in="$1" \
-            ref="${output}"/"${sampleName}"_primers_"${s}"-mer.fasta \
-            stats="${output}"/"${sampleName}"_"${s}"-mer.counts
-    done
-fi
-
-
+#combine the counts for all the variants of the same primer
+# 1035267_REF_10  1   0.00002%
+# 1035267_REF_15  1   0.00002%
 
 # get only useful info from bbduk output
 for s in "${sizes[@]}"; do
@@ -464,6 +424,15 @@ cat "${output}"/"${sampleName}"_??-mer.counts.txt \
 
 rm "${output}"/"${sampleName}"_*-mer.counts.txt
 rm "${output}"/"${sampleName}"_primers_*-mer.fasta
+
+
+if [ "$mismatch" -gt 0 ] && [ "$mismatch" -le 3 ]; then
+    python ~/PycharmProjects/mismatch_creator/bbduk_count_merger.py \
+        -i "${output}"/"${sampleName}".counts.txt \
+        -o "${output}"/"${sampleName}".counts.merged.txt
+else
+    mv "${output}"/"${sampleName}".counts.txt "${output}"/"${sampleName}".counts.merged.txt
+fi
 
 
 ##############
@@ -492,7 +461,7 @@ while IFS= read -r line; do
         # echo $primer_name
     else
         #get the counts from the bbduk count files
-        counts=$(cat "${output}"/"${sampleName}".counts.txt | grep -wF "$primer_name" | cut -f 2)
+        counts=$(cat "${output}"/"${sampleName}".counts.merged.txt | grep -wF "$primer_name" | cut -f 2)
         [ "$counts" ] || counts=0
 
         printf "%s\t%s\t%s\n" "$primer_name" "$l" "$counts" | tee -a "${output}"/"${sampleName}"_bbduk.tsv
@@ -670,9 +639,9 @@ done
 if [ -n "$result" ]; then
     echo -e "Isolate "$sampleName" is part of clade "$result""
     touch "${output}"/"$result"
-    echo -e "$snpSeq" | tee ""${output}"/"$sampleName"_"${result}".id"
+    echo -e "$snpSeq" | tee ""${output}"/"$sampleName"_clade_"${result}".id"
 else
     echo -e "Isolate "$sampleName" is not part of any known clade"
     touch "${output}"/unknown_clade
-    echo -e "$snpSeq" | tee ""${output}"/"$sampleName"_unknown.id"
+    echo -e "$snpSeq" | tee ""${output}"/"$sampleName"_clade_unknown.id"
 fi
