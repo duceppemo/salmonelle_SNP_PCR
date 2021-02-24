@@ -1,6 +1,9 @@
 #!/bin/bash
 
 
+# Script location
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+
 ############
 #          #
 #   Help   #
@@ -368,7 +371,7 @@ shortest="${sizes[0]}"
 
 #Create a list of all possible strings to search for according to the number of mismarch requested
 if [ "$mismatch" -gt 0 ] && [ "$mismatch" -le 3 ]; then
-    python ~/PycharmProjects/mismatch_creator/mismatch_creator.py \
+    python "${DIR}"/mismatch_creator.py \
         -m "$mismatch" \
         -i "$primers" \
         -o "${output}"/primers.fasta
@@ -427,7 +430,7 @@ rm "${output}"/"${sampleName}"_primers_*-mer.fasta
 
 
 if [ "$mismatch" -gt 0 ] && [ "$mismatch" -le 3 ]; then
-    python ~/PycharmProjects/mismatch_creator/bbduk_count_merger.py \
+    python "${DIR}"/bbduk_count_merger.py \
         -i "${output}"/"${sampleName}".counts.txt \
         -o "${output}"/"${sampleName}".counts.merged.txt
 else
