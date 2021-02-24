@@ -37,10 +37,10 @@ class BBdukCountMerger(object):
         # Merge count by primer/allele and write to file
         # Remove the lowest abundant allele if more than one is found
         fh = open(self.output, 'w')
-        for position, alleles in sorted(self.primer_dict.iteritems()):  # for key, value in d.iteritems():
+        for position, alleles in sorted(iter(self.primer_dict.items())):  # for key, value in d.iteritems():
             ref_count = 0
             alt_count = 0
-            for al, counts in sorted(alleles.iteritems()):
+            for al, counts in sorted(iter(alleles.items())):
                 counter = 0
                 for c in counts:
                     counter += int(c)
