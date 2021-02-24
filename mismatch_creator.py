@@ -23,7 +23,7 @@ class MismatchGenerator(object):
         # Checks
         if not os.path.isfile(self.input):
             sys.exit('Supplied input file does not exists.')
-        if not isinstance(self.mismatch, (int, long)):
+        if not isinstance(self.mismatch, (int)):
             sys.exit('Mismatch value must be an integer.')
         if not 1 <= self.mismatch <= 3:
             sys.exit('Mismatch value must be equal to 1, 2 or 3.')
@@ -54,8 +54,8 @@ class MismatchGenerator(object):
     def create_primers(self):
         alphabet = ['A', 'T', 'C', 'G']
 
-        for position, alleles in self.primer_dict.iteritems():
-            for allele, sequences in alleles.iteritems():
+        for position, alleles in iter(self.primer_dict.items()):
+            for allele, sequences in iter(alleles.items()):
                 for seq in sequences:
                     snp = seq[-1:]
                     # Create all possible combination of SNPs at each position (1 mismatch)
@@ -115,10 +115,10 @@ class MismatchGenerator(object):
     def write_output_fasta(self):
         fh = open(self.output, 'w')
 
-        for position, alleles in self.primer_dict.iteritems():
-            for allele, sequences in alleles.iteritems():
+        for position, alleles in iter(self.primer_dict.items()):
+            for allele, sequences in iter(alleles.items()):
                 counter = 0
-                for sequence, all_primers in sequences.iteritems():
+                for sequence, all_primers in iter(sequences.items()):
                     for p in all_primers:
                         counter += 1
                         fh.write('>' + position + '_' + allele + '_' + str(counter) + "\n" + p + "\n")
